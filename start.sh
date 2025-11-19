@@ -8,7 +8,7 @@ sudo chown -R $USER:$USER "$WORKDIR"
 sudo chown -R $USER:$USER /home/$USER
 sudo update-alternatives --set php /usr/bin/php8.3
 
-# Restore default configurations if volume is empty
+# 1. Restore default configurations if volume is empty (Files)
 if [ ! -f /home/$USER/.bashrc ]; then
     echo "[INFO] Restoring default .bashrc..."
     cp /etc/skel/.bashrc /home/$USER/.bashrc
@@ -18,6 +18,25 @@ if [ ! -f /home/$USER/.bashrc ]; then
     echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/$USER/.bashrc
     chown $USER:$USER /home/$USER/.bashrc /home/$USER/.profile
 fi
+
+# 2. Restore Apache Configuration to /home/coder/.apache2 if missing
+if [ ! -d "/home/$USER/.apache2" ]; then
+    echo "[INFO] Initializing Apache config in /home/$USER/.apache2..."
+    cp -r /opt/apache2-backup /home/$USER/.apache2
+    chown -R $USER:$USER /home/$USER/.apache2
+fi
+
+# 3. Link System Apache to Home Apache (Runtime Link)
+# Doar daca nu este deja linkuit (verificare de siguranta)
+if [ ! -L "/etc/apache2" ]; then
+    echo "[INFO] Linking /etc/apache2 to /home/$USER/.apache2..."
+    sudo rm -rf /etc/apache2
+    sudo ln -s /home/$USER/.apache2 /etc/apache2
+fi
+
+# 4. Create necessary directories
+mkdir -p /home/$USER/logs
+mkdir -p /home/$USER/www
 
 # Laravel setup / Env setup (placeholder)
 

@@ -81,8 +81,10 @@ RUN usermod -aG sudo coder && \
     echo "coder ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/coder && \
     chmod 0440 /etc/sudoers.d/coder
 
-RUN mv /etc/apache2 /home/coder/.apache2
-RUN ln -s /home/coder/.apache2 /etc/apache2
+# Facem backup la configurarea Apache într-un loc sigur (non-volum)
+# Astfel încât start.sh să o poată restaura în /home/coder/.apache2 la prima rulare
+RUN cp -r /etc/apache2 /opt/apache2-backup
+
 RUN apt-get update && apt-get install -y mc nano
 
 # Configurare finală
