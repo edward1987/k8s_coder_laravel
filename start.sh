@@ -1,12 +1,23 @@
 #!/bin/bash
 echo "[DEBUG] Waiting for attach..." && sleep 2
 sudo mkdir -p "$WORKDIR"
-cd "$WORKDIR"
 
-echo "[INFO] Adjusting permissions..."
+echo "[INFO] Adjusting permissions for Persistent Volume..."
+# Aceasta este critică pentru K8s volumes
 sudo chown -R $USER:$USER "$WORKDIR"
 sudo chown -R $USER:$USER /home/$USER
 sudo update-alternatives --set php /usr/bin/php8.3
+
+# Restore default configurations if volume is empty
+if [ ! -f /home/$USER/.bashrc ]; then
+    echo "[INFO] Restoring default .bashrc..."
+    cp /etc/skel/.bashrc /home/$USER/.bashrc
+    cp /etc/skel/.profile /home/$USER/.profile
+    # Adaugam incarcarea NVM in .bashrc pentru shell-uri interactive non-login
+    echo 'export NVM_DIR="/usr/local/share/nvm"' >> /home/$USER/.bashrc
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/$USER/.bashrc
+    chown $USER:$USER /home/$USER/.bashrc /home/$USER/.profile
+fi
 
 # Laravel setup / Env setup (placeholder)
 

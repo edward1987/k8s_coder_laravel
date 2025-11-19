@@ -49,13 +49,24 @@ RUN sed -i 's/^APACHE_RUN_USER=.*/APACHE_RUN_USER=coder/' /etc/apache2/envvars &
     if [ -f /etc/apache2/conf-available/phpmyadmin.conf ]; then a2enconf phpmyadmin; fi && \
     mkdir -p /run/apache2 /var/lock/apache2 /var/log/apache2 && \
     chown -R coder:coder /run/apache2 /var/log/apache2 /var/lock/apache2
-# Instalare NVM + Node.js v22 pentru utilizatorul coder
-RUN mkdir -p /home/$USER/.nvm && chown -R coder:coder /home/$USER/.nvm
-ENV NVM_DIR=/home/${USER}/.nvm
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
+# Instalare NVM + Node.js v22 GLOBAL (pentru a nu fi suprascris de volumul /home/coder)
+ENV NVM_DIR=/usr/local/share/nvm
+RUN mkdir -p $NVM_DIR && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
     . "$NVM_DIR/nvm.sh" && \
-    NVM_DIR="$NVM_DIR" bash -c 'source $NVM_DIR/nvm.sh && nvm install 22 && nvm alias default 22' && \
-    chown -R ${USER}:${USER} $NVM_DIR
+    nvm install 22 && \
+    nvm alias default 22 && \
+    nvm use default && \
+    # Facem symlink-uri pentru ca node și npm să fie disponibile global în PATH fără a sursa nvm mereu
+    ln -s $NVM_DIR/versions/node/v22*/bin/node /usr/local/bin/node && \
+    ln -s $NVM_DIR/versions/node/v22*/bin/npm /usr/local/bin/npm && \
+    # Dăm drepturi userului coder să instaleze alte versiuni dacă vrea
+    chown -R coder:coder $NVM_DIR
+
+# Configurare automată NVM pentru orice shell
+RUN echo 'export NVM_DIR="/usr/local/share/nvm"' > /etc/profile.d/nvm.sh && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/profile.d/nvm.sh && \
+    chmod +x /etc/profile.d/nvm.sh
 
 # Instalare Code-Server (VS Code Web)
 RUN curl -fsSL https://code-server.dev/install.sh | sh
