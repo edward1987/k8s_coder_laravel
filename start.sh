@@ -38,6 +38,32 @@ fi
 mkdir -p /home/$USER/logs
 mkdir -p /home/$USER/www
 
+# 5. SSL Certificate Generation (Self-Signed)
+SSL_DIR="/home/$USER/.apache2/ssl"
+mkdir -p "$SSL_DIR"
+if [ ! -f "$SSL_DIR/server.crt" ]; then
+    echo "[INFO] Generating self-signed SSL certificate..."
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/server.key" \
+        -out "$SSL_DIR/server.crt" \
+        -subj "/C=RO/ST=Bucharest/L=Bucharest/O=Development/OU=Coder/CN=localhost"
+    chown -R $USER:$USER "$SSL_DIR"
+fi
+
+# Ensure Apache SSL config points to our certs
+# We assume default-ssl.conf exists or we patch default config
+# A safe bet is to create a dedicated snippet if not present
+if [ ! -f "/etc/apache2/conf-available/coder-ssl.conf" ]; then
+    echo "[INFO] Configuring Apache SSL paths..."
+    echo "SSLCertificateFile $SSL_DIR/server.crt" | sudo tee /etc/apache2/conf-available/coder-ssl.conf
+    echo "SSLCertificateKeyFile $SSL_DIR/server.key" | sudo tee -a /etc/apache2/conf-available/coder-ssl.conf
+    sudo a2enconf coder-ssl
+fi
+
+# Enable SSL module and default SSL site
+sudo a2enmod ssl
+sudo a2ensite default-ssl
+
 # Laravel setup / Env setup (placeholder)
 
 # Start code-server (binarul este deja instalat in imagine)
